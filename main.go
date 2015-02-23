@@ -3,7 +3,7 @@
 // http://golang-basic.blogspot.com/2014/06/step-by-step-guide-to-ssh-using-go.html
 
 // Connect to a few machines and tail a file
-// multitail /location/of/file machine1 machine2 machine3...
+// multitail "cmdtorun /location/of/file" machine1 machine2 machine3...
 
 package main
 
@@ -58,7 +58,6 @@ func main() {
 
 	results := make(chan string, 10)
 	for _, hostname := range hosts {
-		log.Printf("Host %s@%s\n", user.Username, hostname)
 		go func(h string) {
 			results <- executeCmd(cmd, h)
 		}(hostname)
@@ -67,7 +66,7 @@ func main() {
 	for i := 0; i < len(hosts); i++ {
 		select {
 		case res := <-results:
-			log.Print(res)
+			fmt.Print(res)
 		}
 	}
 }
