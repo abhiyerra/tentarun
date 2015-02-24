@@ -1,25 +1,55 @@
-// Based off of:
-// http://kukuruku.co/hub/golang/ssh-commands-execution-on-hundreds-of-servers-via-go
-// http://golang-basic.blogspot.com/2014/06/step-by-step-guide-to-ssh-using-go.html
-
-// Connect to a few machines and tail a file
-// multitail "cmdtorun /location/of/file" machine1 machine2 machine3...
-
 package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
-	"github.com/howeyc/gopass"
 	"golang.org/x/crypto/ssh"
+	"io/ioutil"
 	"log"
-	"os"
 	"os/user"
+	"strings"
 )
 
 var (
-	config *ssh.ClientConfig
+	username  string
+	password  string
+	hostnames string
+	keyfile   string
+	hosts     []string
+	config    *ssh.ClientConfig
 )
+
+func getKeyAuth() (key ssh.Signer) {
+	buf, err := ioutil.ReadFile(keyfile)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	key, err = ssh.ParsePrivateKey(buf)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return
+}
+
+func runOnHosts(cmd string) {
+	results := make(chan string, len(hosts))
+
+	for _, hostname := range hosts {
+		go func() {
+			results <- executeCmd(cmd, hostname)
+		}()
+	}
+
+	for i := 0; i < len(hosts); i++ {
+		select {
+		case res := <-results:
+			fmt.Print(res)
+		}
+	}
+}
 
 func executeCmd(cmd, hostname string) string {
 	conn, err1 := ssh.Dial("tcp", hostname+":22", config)
@@ -37,36 +67,42 @@ func executeCmd(cmd, hostname string) string {
 	session.Stdout = &stdoutBuf
 	session.Run(cmd)
 
-	return hostname + ": " + stdoutBuf.String()
+	return stdoutBuf.String()
+}
+
+func init() {
+	user, err := user.Current()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	flag.StringVar(&username, "u", user.Username, "The username of the machines")
+	flag.StringVar(&password, "p", "", "The password of the machines")
+	flag.StringVar(&hostnames, "h", "", "The hosts separated by a comma. Ex. host1,host2,host3")
+	flag.StringVar(&keyfile, "k", "", "The public key to connect to the servers with")
 }
 
 func main() {
-	user, _ := user.Current()
+	flag.Parse()
 
-	fmt.Printf("%s Password: ", user.Username)
-	pass := gopass.GetPasswd()
+	hosts = strings.Split(hostnames, ",")
 
-	config = &ssh.ClientConfig{
-		User: user.Username,
-		Auth: []ssh.AuthMethod{
-			ssh.Password(string(pass)),
-		},
-	}
-
-	cmd := os.Args[1]
-	hosts := os.Args[2:]
-
-	results := make(chan string, 10)
-	for _, hostname := range hosts {
-		go func(h string) {
-			results <- executeCmd(cmd, h)
-		}(hostname)
-	}
-
-	for i := 0; i < len(hosts); i++ {
-		select {
-		case res := <-results:
-			fmt.Print(res)
+	switch {
+	case password != "":
+		config = &ssh.ClientConfig{
+			User: username,
+			Auth: []ssh.AuthMethod{
+				ssh.Password(password),
+			},
+		}
+	case keyfile != "":
+		config = &ssh.ClientConfig{
+			User: username,
+			Auth: []ssh.AuthMethod{
+				ssh.PublicKeys(getKeyAuth()),
+			},
 		}
 	}
+
+	runOnHosts(flag.Arg(0))
 }
