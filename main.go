@@ -16,6 +16,8 @@ var (
 	password  string
 	hostnames string
 	keyfile   string
+	envstr    string
+	envs      []string
 	hosts     []string
 	config    *ssh.ClientConfig
 )
@@ -63,6 +65,11 @@ func executeCmd(cmd, hostname string) string {
 	}
 	defer session.Close()
 
+	for _, e := range envs {
+		envKeyVal := strings.Split(e, "=")
+		session.Setenv(envKeyVal[0], envKeyVal[1])
+	}
+
 	var stdoutBuf bytes.Buffer
 	session.Stdout = &stdoutBuf
 	session.Run(cmd)
@@ -80,12 +87,16 @@ func init() {
 	flag.StringVar(&password, "p", "", "The password of the machines")
 	flag.StringVar(&hostnames, "h", "", "The hosts separated by a comma. Ex. host1,host2,host3")
 	flag.StringVar(&keyfile, "k", "", "The public key to connect to the servers with")
+	flag.StringVar(&envstr, "e", "", "Environment variables separate by semicolon. Ex. FOO=bar;BAR=foo")
 }
 
 func main() {
 	flag.Parse()
 
 	hosts = strings.Split(hostnames, ",")
+	if envstr != "" {
+		envs = strings.Split(envstr, ";")
+	}
 
 	switch {
 	case password != "":

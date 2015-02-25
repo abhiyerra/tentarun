@@ -16,6 +16,9 @@ With a username and keyfile
     tentarun -u username -k keyfile -h host1,host2,host3 "tail /var/log/nginx/access.log"
     tentarun -k keyfile -h host1,host2,host3 "tail /var/log/nginx/access.log"
 
+Pass environment variables
+
+    tentarun -e "FOO=bar;BAR=foo" -h host1,host2,host3 "echo $FOO"
 
 ## Uses
 
