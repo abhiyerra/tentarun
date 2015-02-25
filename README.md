@@ -22,9 +22,9 @@ Pass environment variables
 
 ## Uses
 
-    - Combine outputs of multiple machines and and parse it using
-      local tools.
-    - Get metrics on multiple machines.
+ - Combine outputs of multiple machines and and parse it using
+   local tools.
+ - Get metrics on multiple machines.
 
 ## Credits
 
