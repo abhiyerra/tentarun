@@ -87,7 +87,7 @@ func init() {
 	flag.StringVar(&password, "p", "", "The password of the machines")
 	flag.StringVar(&hostnames, "h", "", "The hosts separated by a comma. Ex. host1,host2,host3")
 	flag.StringVar(&keyfile, "k", "", "The public key to connect to the servers with")
-	flag.StringVar(&envstr, "e", "", "Environment variables separate by semicolon. Ex. FOO=bar;BAR=foo")
+	flag.StringVar(&envstr, "e", "", "Environment variables separate by space. Ex. FOO=bar BAR=foo")
 }
 
 func main() {
@@ -95,7 +95,7 @@ func main() {
 
 	hosts = strings.Split(hostnames, ",")
 	if envstr != "" {
-		envs = strings.Split(envstr, ";")
+		envs = strings.Split(envstr, " ")
 	}
 
 	switch {
