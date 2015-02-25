@@ -18,7 +18,7 @@ With a username and keyfile
 
 Pass environment variables
 
-    tentarun -e "FOO=bar;BAR=foo" -h host1,host2,host3 "echo $FOO"
+    tentarun -e "FOO=bar BAR=foo" -h host1,host2,host3 "echo $FOO"
 
 ## Uses
 
