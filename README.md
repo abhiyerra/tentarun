@@ -20,6 +20,8 @@ Pass environment variables
 
     tentarun -e "FOO=bar;BAR=foo" -h host1,host2,host3 "echo $FOO"
 
+If you want to return the server name with the output pass -v.
+
 ## Uses
 
     - Combine outputs of multiple machines and and parse it using

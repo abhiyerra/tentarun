@@ -19,6 +19,7 @@ var (
 	envstr    string
 	envs      []string
 	hosts     []string
+	verbose   bool
 	config    *ssh.ClientConfig
 )
 
@@ -74,7 +75,11 @@ func executeCmd(cmd, hostname string) string {
 	session.Stdout = &stdoutBuf
 	session.Run(cmd)
 
-	return stdoutBuf.String()
+	verboseStr := ""
+	if verbose {
+		verboseStr = hostname + ":\n"
+	}
+	return verboseStr + stdoutBuf.String()
 }
 
 func init() {
@@ -88,6 +93,7 @@ func init() {
 	flag.StringVar(&hostnames, "h", "", "The hosts separated by a comma. Ex. host1,host2,host3")
 	flag.StringVar(&keyfile, "k", "", "The public key to connect to the servers with")
 	flag.StringVar(&envstr, "e", "", "Environment variables separate by space. Ex. FOO=bar BAR=foo")
+	flag.BoolVar(&verbose, "v", false, "Show the server name in the output.")
 }
 
 func main() {
