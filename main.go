@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"golang.org/x/crypto/ssh"
@@ -12,16 +13,22 @@ import (
 )
 
 var (
-	username  string
-	password  string
-	hostnames string
-	keyfile   string
-	envstr    string
-	envs      []string
-	hosts     []string
-	verbose   bool
-	config    *ssh.ClientConfig
+	username   string
+	password   string
+	hostnames  string
+	keyfile    string
+	envstr     string
+	envs       []string
+	hosts      []string
+	verbose    bool
+	jsonOutput bool
+	config     *ssh.ClientConfig
 )
+
+type Output struct {
+	Hostname string `json:"hostname"`
+	Output   string `json:"output"`
+}
 
 func getKeyAuth() (key ssh.Signer) {
 	buf, err := ioutil.ReadFile(keyfile)
@@ -38,7 +45,7 @@ func getKeyAuth() (key ssh.Signer) {
 }
 
 func runOnHosts(cmd string) {
-	results := make(chan string, len(hosts))
+	results := make(chan Output, len(hosts))
 
 	for _, hostname := range hosts {
 		go func(h string) {
@@ -46,15 +53,38 @@ func runOnHosts(cmd string) {
 		}(hostname)
 	}
 
+	var outs []Output
+
 	for i := 0; i < len(hosts); i++ {
 		select {
 		case res := <-results:
-			fmt.Print(res)
+			outs = append(outs, res)
+
 		}
 	}
+
+	if jsonOutput {
+		o, err := json.Marshal(outs)
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Print(string(o))
+	} else {
+		for i := 0; i < len(outs); i++ {
+			output := outs[i].Output
+
+			if verbose {
+				output = outs[i].Hostname + ":\n" + output
+			}
+
+			fmt.Print(output)
+		}
+	}
+
 }
 
-func executeCmd(cmd, hostname string) string {
+func executeCmd(cmd, hostname string) Output {
 	conn, err1 := ssh.Dial("tcp", hostname+":22", config)
 	if err1 != nil {
 		log.Fatal(err1)
@@ -75,11 +105,10 @@ func executeCmd(cmd, hostname string) string {
 	session.Stdout = &stdoutBuf
 	session.Run(cmd)
 
-	verboseStr := ""
-	if verbose {
-		verboseStr = hostname + ":\n"
+	return Output{
+		Hostname: hostname,
+		Output:   stdoutBuf.String(),
 	}
-	return verboseStr + stdoutBuf.String()
 }
 
 func init() {
@@ -94,6 +123,7 @@ func init() {
 	flag.StringVar(&keyfile, "k", "", "The public key to connect to the servers with")
 	flag.StringVar(&envstr, "e", "", "Environment variables separate by space. Ex. FOO=bar BAR=foo")
 	flag.BoolVar(&verbose, "v", false, "Show the server name in the output.")
+	flag.BoolVar(&jsonOutput, "j", false, "Show the output as json. server_name => \"output\"")
 }
 
 func main() {

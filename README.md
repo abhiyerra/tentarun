@@ -22,6 +22,18 @@ Pass environment variables
 
 If you want to return the server name with the output pass -v.
 
+If you want to return json output of the following format specify the -j flag:
+
+```
+    [
+      {
+        "hostname": "host1",
+        "output": "output1"
+      }
+    ]
+```
+
+
 ## Uses
 
  - Combine outputs of multiple machines and and parse it using
