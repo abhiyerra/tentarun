@@ -40,9 +40,9 @@ func runOnHosts(cmd string) {
 	results := make(chan string, len(hosts))
 
 	for _, hostname := range hosts {
-		go func() {
-			results <- executeCmd(cmd, hostname)
-		}()
+		go func(h string) {
+			results <- executeCmd(cmd, h)
+		}(hostname)
 	}
 
 	for i := 0; i < len(hosts); i++ {
